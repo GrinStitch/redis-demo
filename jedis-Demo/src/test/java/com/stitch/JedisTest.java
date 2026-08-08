@@ -1,5 +1,6 @@
 package com.stitch;
 
+import com.stitch.jedis.util.JedisConnectionFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,8 +15,7 @@ public class JedisTest {
 
     @BeforeEach
     public void setUp() {
-        jedis = new Jedis("localhost", 6379);
-        jedis.auth("123456");
+        jedis = JedisConnectionFactory.getJedis();
         jedis.select(2);
     }
 

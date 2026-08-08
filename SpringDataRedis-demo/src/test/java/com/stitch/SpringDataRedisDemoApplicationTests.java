@@ -10,7 +10,7 @@ import org.springframework.data.redis.core.ValueOperations;
 class SpringDataRedisDemoApplicationTests {
 
 	@Autowired
-	private RedisTemplate redisTemplate;
+	private RedisTemplate<String, Object> redisTemplate;
 	@Test
 	void RedisTest() {
 		ValueOperations ops = redisTemplate.opsForValue();

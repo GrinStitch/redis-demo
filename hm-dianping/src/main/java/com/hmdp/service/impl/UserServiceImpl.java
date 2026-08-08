@@ -63,7 +63,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if(code == null || !code.toString().equals(loginForm.getCode())){
             return Result.fail("验证码错误!");
         }
-        //4.判断当前用户是否已经存在
+        //4.判断当前用户是否已经注册
         User user = query().eq("phone", loginForm.getPhone()).one();
         if(user == null){
             user = createUserWithPhone(loginForm.getPhone());

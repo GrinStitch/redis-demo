@@ -14,6 +14,9 @@ class HmDianPingApplicationTests {
 
     @Test
     void shopTest(){
-        shopService.saveShop2Redis(1L, 1L);
+        for(Long i = 1L; i < 10; i++){
+            shopService.saveShop2Redis(i, 1L);
+        }
+
     }
 }

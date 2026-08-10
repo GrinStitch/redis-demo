@@ -38,6 +38,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             Shop shopJson = JSONUtil.toBean(shopStr, Shop.class);
             return Result.ok(shopJson);
         }
+        //2.5如果redis中存在空值, 直接返回
         if (shopStr != null){
             return Result.fail("店铺不存在");
         }

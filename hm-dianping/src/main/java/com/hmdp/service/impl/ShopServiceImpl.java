@@ -13,6 +13,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -29,7 +30,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     private StringRedisTemplate stringRedisTemplate;
 
     @Override
-    public Object queryById(Long id) {
+    public Result queryById(Long id) {
         //1.先在redis中查询是否有该店铺的缓存, 如果有, 直接返回
         String shopStr = stringRedisTemplate.opsForValue().get(RedisConstants.CACHE_SHOP_KEY + id);
         if (StrUtil.isNotBlank(shopStr)) {
@@ -37,15 +38,34 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             Shop shopJson = JSONUtil.toBean(shopStr, Shop.class);
             return Result.ok(shopJson);
         }
+        if (shopStr != null){
+            return Result.fail("店铺不存在");
+        }
         //3.如果redis中不存在, 则查询数据库
         Shop shop = getById(id);
         //4.如果数据库中不存在, 则返回错误
         if (shop == null) {
+            //4.5将空值写入redis(简单地处理缓存穿透问题)
+            stringRedisTemplate.opsForValue().set(RedisConstants.CACHE_SHOP_KEY + id, "",
+                    RedisConstants.CACHE_NULL_TTL, TimeUnit.MINUTES);
             return Result.fail("店铺不存在");
         }
         //5.将查询到的店铺信息写入redis
-        stringRedisTemplate.opsForValue().set(RedisConstants.CACHE_SHOP_KEY + id, JSONUtil.toJsonStr(shop));
+        stringRedisTemplate.opsForValue().set(RedisConstants.CACHE_SHOP_KEY + id, JSONUtil.toJsonStr(shop),
+                RedisConstants.CACHE_SHOP_TTL, TimeUnit.MINUTES);
         //6.返回店铺信息
         return Result.ok(shop);
+    }
+
+    @Override
+    public Result updateShop(Shop shop) {
+        if (shop.getId() == null) {
+            return Result.fail("店铺id不能为空");
+        }
+        //1.更新数据库
+        updateById(shop);
+        //2.删除缓存
+        stringRedisTemplate.delete(RedisConstants.CACHE_SHOP_KEY + shop.getId());
+        return Result.ok();
     }
 }

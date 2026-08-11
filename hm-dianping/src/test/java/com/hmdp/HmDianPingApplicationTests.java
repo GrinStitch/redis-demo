@@ -17,6 +17,7 @@ class HmDianPingApplicationTests {
         for(Long i = 1L; i < 10; i++){
             shopService.saveShop2Redis(i, 1L);
         }
-
     }
+
+
 }

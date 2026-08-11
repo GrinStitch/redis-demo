@@ -11,7 +11,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.SimpleRedisLock;
 import com.hmdp.utils.UserHolder;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +39,8 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private RedisIdWorker redisIdWorker;
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    private RedissonClient redissonClient;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -65,9 +70,22 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }*/
 
         //基于radis的简易分布式锁
-        SimpleRedisLock lock = new SimpleRedisLock("order:" + userId, stringRedisTemplate);
-        boolean res = lock.tryLock(1000L);
-        if(res == false){
+/*        SimpleRedisLock lock = new SimpleRedisLock("order:" + userId, stringRedisTemplate);
+        boolean flag = lock.tryLock(1000L);
+        if(flag == false){
+            return Result.fail("每位用户限购一单!");
+        }
+        try {
+            IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
+            return proxy.createVoucherOrder(voucherId);
+        } finally {
+            lock.unlock();
+        }*/
+
+        //基于Redisson的分布式锁
+        RLock lock = redissonClient.getLock("lock:order: + userId");
+        boolean flag = lock.tryLock();
+        if(flag == false){
             return Result.fail("每位用户限购一单!");
         }
         try {

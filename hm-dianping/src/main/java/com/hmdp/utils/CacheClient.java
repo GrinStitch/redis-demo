@@ -26,11 +26,11 @@ public class CacheClient {
 
     private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);
 
-    public void set(String key, Object value, Long time, TimeUnit timeUtil){
+    public void set(String key, Object value, Long time, TimeUnit timeUtil) {
         stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(value), time, timeUtil);
     }
 
-    public void setWithLogicalExpire(String key, Object value, Long time, TimeUnit timeUtil){
+    public void setWithLogicalExpire(String key, Object value, Long time, TimeUnit timeUtil) {
         RedisData redisData = new RedisData();
         redisData.setData(value);
         redisData.setExpireTime(LocalDateTime.now().plusSeconds(timeUtil.toSeconds(time)));
@@ -67,7 +67,7 @@ public class CacheClient {
 
     //缓存击穿(逻辑处理)
     public <R, ID> R queryWithLogicalExpire(String keyPrefix, String lockPrefix, ID id, Class<R> type,
-                                          Function<ID, R> function, Long time, TimeUnit timeUtil) {
+                                            Function<ID, R> function, Long time, TimeUnit timeUtil) {
         String key = keyPrefix + id;
         String locKey = lockPrefix + id;
         //1.先在redis中查询是否有该店铺的缓存, 如果有, 直接返回
@@ -107,7 +107,7 @@ public class CacheClient {
 
     //缓存击穿(互斥锁)
     public <R, ID> R queryWithMutex(String keyPrefix, String lockPrefix, ID id, Class<R> type,
-                                    Function<ID, R> function, Long time, TimeUnit timeUtil) {
+                                    Function<ID, R> function, Long time, TimeUnit timeUtil) throws InterruptedException {
         String key = keyPrefix + id;
         String locKey = lockPrefix + id;
         //1.先在redis中查询是否有该店铺的缓存, 如果有, 直接返回
@@ -120,14 +120,15 @@ public class CacheClient {
         if (json != null) {
             return null;
         }
+
+        //获取互斥锁
+        boolean lock = tryLock(locKey);
+        if (lock == false) {
+            //获取锁失败
+            Thread.sleep(50);
+            return queryWithMutex(keyPrefix, lockPrefix, id, type, function, time, timeUtil);
+        }
         try {
-            //获取互斥锁
-            boolean lock = tryLock(locKey);
-            if (lock == false) {
-                //获取锁失败
-                Thread.sleep(50);
-                return queryWithMutex(keyPrefix, lockPrefix, id, type, function, time, timeUtil);
-            }
             //3.如果redis中不存在, 则查询数据库
             R r = function.apply(id);
             //4.如果数据库中不存在, 则返回错误
@@ -140,8 +141,6 @@ public class CacheClient {
             this.set(key, r, time, timeUtil);
             //6.返回店铺信息
             return r;
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         } finally {
             //释放锁
             unlock(locKey);

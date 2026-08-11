@@ -69,7 +69,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             return proxy.createVoucherOrder(voucherId);
         }*/
 
-        //基于radis的简易分布式锁
+        //基于Radis的简易分布式锁
 /*        SimpleRedisLock lock = new SimpleRedisLock("order:" + userId, stringRedisTemplate);
         boolean flag = lock.tryLock(1000L);
         if(flag == false){

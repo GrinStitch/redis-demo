@@ -19,6 +19,9 @@ public class UploadController {
 
     @PostMapping("blog")
     public Result uploadImage(@RequestParam("file") MultipartFile image) {
+        if(image == null || image.isEmpty()) {
+            return Result.fail("图片不能为空!");
+        }
         try {
             // 获取原始文件名称
             String originalFilename = image.getOriginalFilename();

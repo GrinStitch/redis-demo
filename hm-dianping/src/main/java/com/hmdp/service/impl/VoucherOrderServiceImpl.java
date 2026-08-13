@@ -59,12 +59,12 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private static final ExecutorService SECKILL_ORDER_EXECUTOR = Executors.newSingleThreadExecutor();
 
 
-        @PostConstruct
+/*    //redis的stream
+    @PostConstruct
     public void init() {
         SECKILL_ORDER_EXECUTOR.submit(new VoucherOrderHandler());
     }
-
-    private class VoucherOrderHandler implements Runnable {
+        private class VoucherOrderHandler implements Runnable {
         String queueName = "streams.order";
         @Override
         public void run() {
@@ -123,7 +123,8 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                 }
             }
         }
-    }
+    }*/
+
     @PostConstruct
     public void init() {
         SECKILL_ORDER_EXECUTOR.submit(new VoucherOrderHandler());
@@ -143,39 +144,6 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                     log.info("订单处理线程被中断", e);
                 }
             }
-        }
-    }
-
-    public void handleVoucherOrder(VoucherOrder voucherOrder) {
-        //基于Redisson的分布式锁
-        RLock lock = redissonClient.getLock("lock:order:" + voucherOrder.getUserId());
-        boolean isLocked = lock.tryLock();
-        if (isLocked == false) {
-            log.info("每位用户限购一单!");
-            return;
-        }
-        try {
-            Long voucherId = voucherOrder.getVoucherId();
-            Long userId = voucherOrder.getUserId();
-            //一人一单
-            int count = query().eq("user_id", userId).eq("voucher_id", voucherId).count();
-            if (count > 0) {
-                log.info("每位用户限购一单!");
-                return;
-            }
-            //减库存(乐观锁)
-            boolean flag = seckillVoucherService.update()
-                    .setSql("stock = stock - 1")
-                    .eq("voucher_id", voucherId)
-                    .gt("stock", 0)
-                    .update();
-            if (!flag) {
-                log.info("库存不足!");
-                return;
-            }
-            save(voucherOrder);
-        } finally {
-            lock.unlock();
         }
     }
 

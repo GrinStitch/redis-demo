@@ -39,4 +39,10 @@ public interface IUserService extends IService<User> {
      * @return
      */
     Result logout(HttpServletRequest request);
+
+    /**
+     * 签到功能
+     * @return
+     * */
+    Result sign();
 }

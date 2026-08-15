@@ -23,9 +23,10 @@ public class MvcConfig implements WebMvcConfigurer {
                 "/shop-type/**",
                 "/user/login",
                 "/user/code",
-                "/upload/**",
-                "/blog/hot",
-                "/voucher/**"
+                "/user/logout"
+                //"/upload/**",
+                //"/blog/hot",
+                //"/voucher/**"
         ).order(1);
         registry.addInterceptor(new RefreshTokenInterceptor(stringRedisTemplateRedisTemplate)).addPathPatterns("/**").order(0);
     }

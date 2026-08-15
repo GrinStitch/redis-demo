@@ -14,14 +14,17 @@ import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.RegexUtils;
+import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -113,10 +116,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         return Result.ok(token);
     }
 
+    @Override
+    public Result logout(HttpServletRequest request) {
+        //获取当前登录用户
+        Long userId = UserHolder.getUser().getId();
+        stringRedisTemplate.opsForHash().delete(RedisConstants.LOGIN_USER_KEY, request.getHeader("authorization"));
+        return Result.ok();
+    }
+
     private User createUserWithPhone(String phone) {
         User newUser  = new User();
         newUser.setPhone(phone);
         newUser.setNickName(USER_NICK_NAME_PREFIX + RandomUtil.randomString(10));
+        newUser.setCreateTime(LocalDateTime.now());
+        newUser.setUpdateTime(LocalDateTime.now());
         save(newUser);
         return newUser;
     }
